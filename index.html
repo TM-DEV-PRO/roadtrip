@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coastal Karnataka Road Trip Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: A tab-based single-page application is chosen for optimal user experience. This structure deconstructs the linear report into thematic, digestible sections: 'Overview', 'Route Planner', 'Destinations', 'Culinary Guide', and 'Logistics'. This non-linear approach allows users to directly access information most relevant to their planning needs (e.g., jumping straight to food or accommodations) rather than scrolling through a long document. Key interactions include a dynamic distance chart for trip visualization, a side-by-side route comparison for informed decision-making, and filterable content for destinations and food, making the data highly explorable and personalized. -->
+    <!-- Visualization & Content Choices: 
+        1. Daily Distance Chart: Report Info -> Daily travel distances. Goal -> Inform user of daily driving effort. Viz -> Bar Chart (Chart.js/Canvas). Interaction -> Tooltip on hover shows exact km. Justification -> Provides a quick, comparative visual summary of the trip's intensity.
+        2. Route Comparison: Report Info -> NH75 vs Mysore route data. Goal -> Compare and decide. Presentation -> Side-by-side cards (HTML/Tailwind). Interaction -> None needed; clarity is key. Justification -> Direct comparison is the most effective way to present a choice.
+        3. Filterable Destinations: Report Info -> All points of interest. Goal -> Organize and explore. Presentation -> Interactive card grid (HTML/Tailwind). Interaction -> JS-powered buttons filter cards by city/type. Justification -> Empowers users to customize their itinerary based on interest.
+        4. Tabbed Culinary Guide: Report Info -> Food recommendations table. Goal -> Organize by location. Presentation -> Tabbed content panes (HTML/Tailwind). Interaction -> JS-powered tabs switch content. Justification -> Standard UI pattern for preventing information overload.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+        }
+        .nav-link.active {
+            border-bottom-color: #c2410c; /* warm-orange-600 */
+            color: #c2410c;
+            font-weight: 600;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .filter-btn.active {
+            background-color: #c2410c;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-stone-900 mb-2">Coastal Karnataka Road Trip</h1>
+            <p class="text-lg text-stone-600">Your interactive guide to an unforgettable journey from Bangalore.</p>
+        </header>
+
+        <nav class="flex justify-center border-b-2 border-stone-200 mb-8 space-x-4 md:space-x-8">
+            <button class="nav-link text-sm md:text-base py-4 border-b-4 border-transparent active" data-target="overview">Overview</button>
+            <button class="nav-link text-sm md:text-base py-4 border-b-4 border-transparent" data-target="route-planner">Route Planner</button>
+            <button class="nav-link text-sm md:text-base py-4 border-b-4 border-transparent" data-target="destinations">Destinations</button>
+            <button class="nav-link text-sm md:text-base py-4 border-b-4 border-transparent" data-target="culinary-guide">Culinary Guide</button>
+            <button class="nav-link text-sm md:text-base py-4 border-b-4 border-transparent" data-target="logistics">Logistics</button>
+        </nav>
+
+        <main>
+            <section id="overview" class="content-section active">
+                <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-orange-800">Trip Summary</h2>
+                    <p class="text-stone-700 leading-relaxed">This 5-day road trip is an immersive journey through Coastal Karnataka's rich fusion of urban culture, ancient spiritual heritage, and pristine natural beauty. The curated itinerary balances comfortable travel with rewarding detours and deep dives into local cuisine and culture. From the majestic temples of Udupi to the serene beaches of Gokarna and the unique history of Karwar, this adventure offers a comprehensive and unforgettable experience.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-bold mb-4 text-center text-orange-800">Daily Driving Distance (km)</h2>
+                    <p class="text-center text-stone-600 mb-4">This chart visualizes the estimated driving distance for each day of the trip, helping you anticipate the travel load. Hover over each bar for precise details.</p>
+                    <div class="chart-container">
+                        <canvas id="distanceChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="route-planner" class="content-section">
+                 <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-orange-800">Choosing Your Path</h2>
+                    <p class="text-stone-700 leading-relaxed">The journey begins with a strategic choice of route from Bangalore to Mangalore. Your selection will shape the first day's experience, offering a trade-off between speed and scenery. Below is a comparison to help you decide. The return journey offers its own unique adventure through the dense Western Ghats.</p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="border border-stone-200 p-6 rounded-lg bg-white">
+                        <h3 class="text-xl font-bold text-teal-700 mb-3">Route 1: Via NH75 (The Express)</h3>
+                        <ul class="space-y-2 text-stone-600">
+                            <li><strong>Distance:</strong> ~352 km</li>
+                            <li><strong>Time:</strong> ~7 hours</li>
+                            <li><strong>Road Condition:</strong> Excellent with tolls, but be aware of some patchy segments and ongoing construction.</li>
+                            <li><strong>Vibe:</strong> Efficient and comfortable, best for reaching the coast quickly.</li>
+                            <li class="pt-2"><strong>Key Stops:</strong> Shravanabelagola (Gommateshwara statue), Halebeedu Temple.</li>
+                            <li><strong>Food Breaks:</strong> Kamat Upchar (Kunigal), Malgudi Mylari Mane.</li>
+                        </ul>
+                    </div>
+                    <div class="border border-stone-200 p-6 rounded-lg bg-white">
+                        <h3 class="text-xl font-bold text-teal-700 mb-3">Route 2: Via Mysore (The Scenic)</h3>
+                        <ul class="space-y-2 text-stone-600">
+                            <li><strong>Distance:</strong> ~405 km</li>
+                            <li><strong>Time:</strong> >9 hours</li>
+                            <li><strong>Road Condition:</strong> Variable, with some narrow stretches.</li>
+                            <li><strong>Vibe:</strong> Leisurely and picturesque, with better food options.</li>
+                            <li class="pt-2"><strong>Key Stops:</strong> Jaganmohan Palace (Mysore), DG Falls.</li>
+                            <li><strong>Food Breaks:</strong> Hotel Vinayaka Mylari (Mysore), Hotel RRR Mysuru.</li>
+                        </ul>
+                    </div>
+                </div>
+                 <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-bold text-teal-700 mb-3">The Return Journey: Karwar to Bangalore</h3>
+                    <p class="text-stone-700 leading-relaxed">The final leg of your trip is a ~524 km drive that transitions dramatically from coastal plains to the dense, biodiverse rainforests of the Western Ghats. The route passes through the magnificent Kali Tiger Reserve (formerly Anshi National Park), offering a chance for a jeep safari to spot rare wildlife, including the elusive black panther. This scenic conclusion provides a stunning environmental contrast to the coastal landscapes, ending your journey on a high note.</p>
+                </div>
+            </section>
+
+            <section id="destinations" class="content-section">
+                <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-orange-800">Explore Key Destinations</h2>
+                    <p class="text-stone-700 leading-relaxed mb-4">Coastal Karnataka is dotted with a diverse range of attractions. From ancient temples and historical forts to pristine beaches and unique geological wonders, there is something for every traveler. Use the filters below to discover points of interest based on location or your personal interests.</p>
+                    <div class="flex flex-wrap justify-center gap-2 mb-4">
+                        <button class="filter-btn active px-4 py-2 bg-stone-200 text-stone-700 rounded-full text-sm font-medium" data-filter="all">All</button>
+                        <button class="filter-btn px-4 py-2 bg-stone-200 text-stone-700 rounded-full text-sm font-medium" data-filter="mangalore">Mangalore</button>
+                        <button class="filter-btn px-4 py-2 bg-stone-200 text-stone-700 rounded-full text-sm font-medium" data-filter="udupi">Udupi</button>
+                        <button class="filter-btn px-4 py-2 bg-stone-200 text-stone-700 rounded-full text-sm font-medium" data-filter="gokarna">Gokarna</button>
+                        <button class="filter-btn px-4 py-2 bg-stone-200 text-stone-700 rounded-full text-sm font-medium" data-filter="karwar">Karwar</button>
+                    </div>
+                     <div class="flex flex-wrap justify-center gap-2">
+                        <button class="filter-btn px-4 py-2 bg-stone-200 text-stone-700 rounded-full text-sm font-medium" data-filter="beach">🏖️ Beaches</button>
+                        <button class="filter-btn px-4 py-2 bg-stone-200 text-stone-700 rounded-full text-sm font-medium" data-filter="temple">🕉️ Temples</button>
+                        <button class="filter-btn px-4 py-2 bg-stone-200 text-stone-700 rounded-full text-sm font-medium" data-filter="historical">🏛️ Historical</button>
+                        <button class="filter-btn px-4 py-2 bg-stone-200 text-stone-700 rounded-full text-sm font-medium" data-filter="nature">🌳 Nature</button>
+                    </div>
+                </div>
+                <div id="destinations-grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+            </section>
+
+            <section id="culinary-guide" class="content-section">
+                <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-orange-800">A Taste of the Coast</h2>
+                    <p class="text-stone-700 leading-relaxed">The culinary scene is an essential part of the Coastal Karnataka experience. Each city offers unique flavors, from fresh seafood delicacies in Mangalore and Karwar to the famous vegetarian cuisine of Udupi. Select a city to explore its must-try dishes and the best places to find them.</p>
+                </div>
+                <div id="culinary-content" class="bg-white p-6 rounded-lg shadow-md">
+                </div>
+            </section>
+
+            <section id="logistics" class="content-section">
+                <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-orange-800">Trip Preparation & Stays</h2>
+                    <p class="text-stone-700 leading-relaxed">Careful planning is key to a smooth and enjoyable road trip. This section covers essential logistics, from the best time to travel to vehicle readiness and recommended accommodation options in each city.</p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <h3 class="text-xl font-bold text-teal-700 mb-3">Optimal Timing & Vehicle Prep</h3>
+                        <p class="mb-2"><strong>Best Season:</strong> October to February offers pleasant weather, ideal for all activities.</p>
+                        <p class="mb-4"><strong>Monsoon Appeal:</strong> June to September is for those seeking dramatic, lush green landscapes, especially at sites like Mirjan Fort. Be prepared for rain.</p>
+                        <p class="font-semibold">Vehicle Checklist:</p>
+                        <ul class="list-disc list-inside text-stone-600 mt-2">
+                            <li>Thoroughly check tire treads and pressure.</li>
+                            <li>Ensure windshield wipers and brakes are in top condition.</li>
+                            <li>Pack an emergency kit.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <h3 class="text-xl font-bold text-teal-700 mb-3">Accommodation Guide</h3>
+                        <p class="text-stone-700 mb-4">Each destination offers a range of stays, from luxury resorts to cozy homestays.</p>
+                        <ul class="space-y-2 text-stone-600">
+                            <li><strong>Mangalore:</strong> Find centrally located hotels like The Ocean Pearl or beachside homestays for a quieter vibe.</li>
+                            <li><strong>Udupi:</strong> Options include beachfront resorts like Paradise Isle or clean, hygienic city hotels.</li>
+                            <li><strong>Gokarna:</strong> Resorts near Om Beach are popular, offering pools and easy beach access.</li>
+                            <li><strong>Karwar:</strong> Well-regarded hotels and resorts like Sterling Karwar provide excellent views and amenities.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="text-center mt-12 pt-8 border-t border-stone-200">
+            <p class="text-stone-500">Created from the Coastal Karnataka Road Trip Dossier. Happy travels!</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tripData = {
+                distances: {
+                    labels: ['Day 1: BLR → MLR', 'Day 2: MLR → Udupi', 'Day 3: Udupi → Gokarna', 'Day 4: Gokarna → Karwar', 'Day 5: Karwar → BLR'],
+                    data: [352, 58, 177, 51, 524]
+                },
+                destinations: [
+                    { name: 'Mangaladevi Temple', city: 'mangalore', type: 'temple', desc: 'A 9th-century temple from which the city derives its name, central to its spiritual identity.' },
+                    { name: 'Kudroli Gokarnanath Temple', city: 'mangalore', type: 'temple', desc: 'Built in 1912, this temple is adorned with beautiful murals depicting various myths.' },
+                    { name: 'St. Aloysius Chapel', city: 'mangalore', type: 'historical', desc: 'Often compared to the Sistine Chapel for its stunning fresco paintings by Antonio Moscheni.' },
+                    { name: 'Sultan Battery', city: 'mangalore', type: 'historical', desc: 'A watchtower built by Tipu Sultan with underground weapon chambers to guard against invasions.' },
+                    { name: 'Panambur Beach', city: 'mangalore', type: 'beach', desc: 'A popular, clean beach known for water sports and the annual International Kite Festival.' },
+                    { name: 'Tannirbhavi Beach', city: 'mangalore', type: 'beach', desc: 'A tranquil and unspoiled beach, perfect for those seeking solitude, accessible via ferry.' },
+                    { name: 'Maravanthe Beach', city: 'udupi', type: 'beach', desc: 'A unique location where the highway is flanked by the Arabian Sea on one side and a river on the other.' },
+                    { name: 'Udupi Sri Krishna Temple', city: 'udupi', type: 'temple', desc: 'A major pilgrimage center where Lord Krishna is worshipped as a small boy. Famous for its free lunch.' },
+                    { name: 'St. Mary\'s Island', city: 'udupi', type: 'nature', desc: 'A National Geological Monument famed for its unique hexagonal basalt rock formations.' },
+                    { name: 'Malpe Beach & Seawalk', city: 'udupi', type: 'beach', desc: 'A popular beach destination with a serene sea walk and various water sports activities.' },
+                    { name: 'Kaup Beach', city: 'udupi', type: 'beach', desc: 'Renowned for its iconic lighthouse which offers panoramic views of the sea and coastline.' },
+                    { name: 'Murudeshwar Temple', city: 'gokarna', type: 'temple', desc: 'Home to the world\'s second-tallest Shiva statue and a 22-floor temple tower with amazing views.' },
+                    { name: 'Mirjan Fort', city: 'gokarna', type: 'historical', desc: 'A 16th-century "hidden gem" that was the stronghold of the "Pepper Queen," Chennabhairadevi.' },
+                    { name: 'Om Beach', city: 'gokarna', type: 'beach', desc: 'Shaped like the auspicious Om symbol, this is the prime destination for water sports in Gokarna.' },
+                    { name: 'Kudle & Paradise Beach', city: 'gokarna', type: 'beach', desc: 'Part of a popular 5-beach trek, offering serene and secluded coastal experiences.' },
+                    { name: 'Mahabaleshwar Temple', city: 'gokarna', type: 'temple', desc: 'An important pilgrimage site believed to house the original Atma Linga of Lord Shiva.' },
+                    { name: 'Sahasralinga', city: 'karwar', type: 'temple', desc: 'A spiritual site where hundreds of Shiva Lingas are carved into the rocks of a riverbed.' },
+                    { name: 'Sadashivgad Fort', city: 'karwar', type: 'historical', desc: 'Offers panoramic views of the Arabian Sea and the Kali river estuary.' },
+                    { name: 'Warship Museum', city: 'karwar', type: 'historical', desc: 'Housed in a decommissioned naval vessel, INS Chapal, offering a unique glimpse into naval history.' },
+                    { name: 'Tilmati Beach', city: 'karwar', type: 'beach', desc: 'A unique beach known for its black sand that resembles sesame seeds (til).' },
+                    { name: 'Kali Tiger Reserve', city: 'karwar', type: 'nature', desc: 'A dense rainforest reserve on the return journey, home to rare wildlife including the black panther.' }
+                ],
+                culinary: {
+                    mangalore: {
+                        dishes: 'Fish Ghee Roast, Fish Thali, Mangalore Buns, Neer Dosa, Chicken Sukka.',
+                        eateries: 'Machali, Giri Manja\'s, New Tajmahal, Ideal Cafe, Shetty Lunch Home.'
+                    },
+                    udupi: {
+                        dishes: 'Goli Baje, Authentic Udupi Meal, Banana Buns, Kaddubu, Patrode.',
+                        eateries: 'Mitra Samaj, Hotel Woodlands, Hotel Shree Krishna, MTR.'
+                    },
+                    karwar: {
+                        dishes: 'Prawn Ghee Roast, Karwar Fish Fry, Bangada Fry, Karle Ambat (crab masala).',
+                        eateries: 'Hotel Amrut, Swetha Lunch Home, Udupi Cafe, Beach Food Park.'
+                    }
+                }
+            };
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+
+                    const targetId = link.getAttribute('data-target');
+                    contentSections.forEach(section => {
+                        section.classList.remove('active');
+                        if (section.id === targetId) {
+                            section.classList.add('active');
+                        }
+                    });
+                });
+            });
+
+            const ctx = document.getElementById('distanceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: tripData.distances.labels,
+                    datasets: [{
+                        label: 'Distance (km)',
+                        data: tripData.distances.data,
+                        backgroundColor: 'rgba(194, 65, 12, 0.6)',
+                        borderColor: 'rgba(194, 65, 12, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Kilometers' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` Distance: ${context.parsed.y} km`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const destinationsGrid = document.getElementById('destinations-grid');
+            const filterBtns = document.querySelectorAll('.filter-btn');
+
+            const renderDestinations = (filter = 'all') => {
+                destinationsGrid.innerHTML = '';
+                const filteredDests = tripData.destinations.filter(dest => {
+                    if (filter === 'all') return true;
+                    return dest.city === filter || dest.type === filter;
+                });
+
+                filteredDests.forEach(dest => {
+                    const card = document.createElement('div');
+                    card.className = 'destination-card bg-white p-5 rounded-lg shadow-sm border border-stone-200';
+                    card.innerHTML = `
+                        <h4 class="font-bold text-lg text-teal-800">${dest.name}</h4>
+                        <span class="text-xs font-semibold uppercase text-orange-600">${dest.city} - ${dest.type}</span>
+                        <p class="text-stone-600 mt-2 text-sm">${dest.desc}</p>
+                    `;
+                    destinationsGrid.appendChild(card);
+                });
+            };
+
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    filterBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const filterValue = btn.getAttribute('data-filter');
+                    renderDestinations(filterValue);
+                });
+            });
+
+            const culinaryContent = document.getElementById('culinary-content');
+            const culinaryNav = document.createElement('div');
+            culinaryNav.className = 'flex flex-wrap justify-center gap-2 mb-6 border-b border-stone-200 pb-4';
+            
+            Object.keys(tripData.culinary).forEach((city, index) => {
+                const button = document.createElement('button');
+                button.textContent = city.charAt(0).toUpperCase() + city.slice(1);
+                button.className = `filter-btn px-4 py-2 bg-stone-200 text-stone-700 rounded-full text-sm font-medium`;
+                if (index === 0) button.classList.add('active');
+                button.dataset.city = city;
+                culinaryNav.appendChild(button);
+            });
+            culinaryContent.appendChild(culinaryNav);
+
+            const culinaryDetails = document.createElement('div');
+            culinaryContent.appendChild(culinaryDetails);
+
+            const renderCulinary = (city) => {
+                const data = tripData.culinary[city];
+                culinaryDetails.innerHTML = `
+                    <h4 class="font-bold text-lg text-teal-800 mb-2">Must-Try Dishes</h4>
+                    <p class="text-stone-600 mb-4">${data.dishes}</p>
+                    <h4 class="font-bold text-lg text-teal-800 mb-2">Recommended Eateries</h4>
+                    <p class="text-stone-600">${data.eateries}</p>
+                `;
+            };
+            
+            culinaryNav.addEventListener('click', (e) => {
+                if(e.target.tagName === 'BUTTON') {
+                    culinaryNav.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+                    renderCulinary(e.target.dataset.city);
+                }
+            });
+
+            renderDestinations();
+            renderCulinary('mangalore');
+
+        });
+    </script>
+</body>
+</html>
